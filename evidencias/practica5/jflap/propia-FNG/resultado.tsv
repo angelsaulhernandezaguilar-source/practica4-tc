@@ -1,0 +1,14 @@
+gramatica	S→aAYB S→aYB S→aAY S→aY S→cZ S→dZ S→cRZ S→dRZ S→c S→d A→aAY A→aY B→c B→d B→cR B→dR R→c R→cR Y→b Z→c
+variables	A B R S Y Z
+terminales	a b c d
+tipo	Grammar Type: This is a GNF Grammar (also Context-Free Grammar)
+cadena	ab	Accept
+cadena	c	Accept
+cadena	d	Accept
+cadena	abcc	Accept
+cadena	aabbdcc	Accept
+cadena	ba	Reject
+cadena	aab	Reject
+cadena	cd	Reject
+cadena	abab	Reject
+cadena	dd	Reject
