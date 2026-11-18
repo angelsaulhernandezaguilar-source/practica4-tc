@@ -4,15 +4,24 @@
 
 Solo se usan las fuentes admitidas por el enunciado: libros con ISBN, artículos con DOI en publicaciones con
 revisión por pares, documentación oficial y normas. Los DOI se verificaron en doi.org el 2 de noviembre de
-2026 (Prácticas 2 y 3) y el 5 de noviembre de 2026 (Práctica 4).
+2026 (Prácticas 2 y 3), el 5 de noviembre de 2026 (Práctica 4) y el 17 de noviembre de 2026 (Práctica 5).
 
 ## Libros
 
 Aho, A. V., Lam, M. S., Sethi, R., & Ullman, J. D. (2007). *Compilers: Principles, techniques, and tools*
 (2.ª ed.). Pearson Addison-Wesley. ISBN 978-0-321-48681-3.
 
+Hopcroft, J. E., & Ullman, J. D. (1979). *Introduction to automata theory, languages, and computation*.
+Addison-Wesley. ISBN 978-0-201-02988-8.
+
 Hopcroft, J. E., Motwani, R., & Ullman, J. D. (2007). *Introduction to automata theory, languages, and
 computation* (3.ª ed.). Pearson Addison-Wesley. ISBN 978-0-321-45536-9.
+
+Linz, P. (2017). *An introduction to formal languages and automata* (6.ª ed.). Jones & Bartlett Learning.
+ISBN 978-1-284-07724-7.
+
+Rodger, S. H., & Finley, T. W. (2006). *JFLAP: An interactive formal languages and automata package*. Jones
+and Bartlett. ISBN 978-0-7637-3834-1.
 
 Sipser, M. (2013). *Introduction to the theory of computation* (3.ª ed.). Cengage Learning.
 ISBN 978-1-133-18779-0.
@@ -22,6 +31,10 @@ ISBN 978-1-133-18779-0.
 Arden, D. N. (1961). Delayed-logic and finite-state machines. En *Proceedings of the 2nd Annual Symposium on
 Switching Circuit Theory and Logical Design (SWCT 1961)* (pp. 133–151). IEEE.
 https://doi.org/10.1109/FOCS.1961.13
+
+Backus, J. W., Bauer, F. L., Green, J., Katz, C., McCarthy, J., Perlis, A. J., Rutishauser, H., Samelson, K.,
+Vauquois, B., Wegstein, J. H., van Wijngaarden, A., & Woodger, M. (1960). Report on the algorithmic language
+ALGOL 60 (P. Naur, Ed.). *Communications of the ACM, 3*(5), 299–311. https://doi.org/10.1145/367236.367262
 
 Chomsky, N. (1956). Three models for the description of language. *IRE Transactions on Information Theory,
 2*(3), 113–124. https://doi.org/10.1109/TIT.1956.1056813
@@ -33,6 +46,9 @@ Davis, J. C., Coghlan, C. A., Servant, F., & Lee, D. (2018). The impact of regul
 service (ReDoS) in practice: An empirical study at the ecosystem scale. En *Proceedings of the 2018 26th ACM
 Joint Meeting on European Software Engineering Conference and Symposium on the Foundations of Software
 Engineering* (pp. 246–256). Association for Computing Machinery. https://doi.org/10.1145/3236024.3236027
+
+Greibach, S. A. (1965). A new normal-form theorem for context-free phrase structure grammars. *Journal of the
+ACM, 12*(1), 42–52. https://doi.org/10.1145/321250.321254
 
 Hopcroft, J. (1971). An n log n algorithm for minimizing states in a finite automaton. En Z. Kohavi & A. Paz
 (Eds.), *Theory of machines and computations* (pp. 189–196). Academic Press.
