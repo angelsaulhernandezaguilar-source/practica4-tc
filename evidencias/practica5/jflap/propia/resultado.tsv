@@ -1,0 +1,26 @@
+gramatica	S→AB S→C A→aAb A→λ B→Bc B→D D→d D→λ C→CS C→aC E→eA
+variables	A B S C D E
+terminales	a b c d e
+tipo	Grammar Type: This is a Context-Free Grammar
+aviso	Start Derives Lambda: WARNING : The start variable derives lambda. New Grammar will not produce lambda String.
+etapa	lambda	Select variables that derive lambda. / Click productions; the LHS variable will be added.	Lambda removal complete. / "Proceed" or "Export" available. / Set that derives lambda: [A, B, S, D]	S→AB S→C A→aAb B→Bc B→D D→d C→CS C→aC E→eA S→A S→B A→ab B→c C→C E→e	
+aviso	
+etapa	unitarias	Complete unit production visualization. / 5 more transition(s) needed.	Unit removal complete. / "Proceed" or "Export" available.	S→AB A→aAb B→Bc D→d C→CS C→aC E→eA A→ab B→c E→e S→CS B→d S→aAb S→c S→aC S→ab S→Bc S→d	
+aviso	
+etapa	inutiles	Select variables that derive terminals. / Click productions; the LHS variable will be added.	Useless removal complete. / "Proceed" or "Export" available. / Variables that predicate terminals: [A, B, D, E, S]	S→AB S→aAb S→c S→ab S→Bc S→d B→d B→c A→ab B→Bc A→aAb	
+aviso	
+etapa	chomsky	Welcome to the Chomsky converter. / 6 production(s) must be converted.	All productions completed. / Conversion done.  Press "Export" to use.	S→AB S→B(a)D(1) S→c S→B(a)B(b) S→BB(c) S→d A→B(a)D(1) D(1)→AB(b) B→BB(c) B(c)→c A→B(a)B(b) B(a)→a B(b)→b B→c B→d	
+fnc	S→AB S→CF S→c S→CD S→BE S→d A→CF F→AD B→BE E→c A→CD C→a D→b B→c B→d
+tipo-fnc	Grammar Type: This is a CNF Grammar (also Context-Free Grammar)
+cadena	ab	Accept	Accept
+cadena	c	Accept	Accept
+cadena	d	Accept	Accept
+cadena	abcc	Accept	Accept
+cadena	aabbdcc	Accept	Accept
+cadena	ba	Reject	Reject
+cadena	aab	Reject	Reject
+cadena	cd	Reject	Reject
+cadena	abab	Reject	Reject
+cadena	dd	Reject	Reject
+cyk	aabbdcc	13	Input Input String is Accepted! Derived c from E.  Derivations complete.
+cyk-derivacion	 ⇒ S ; S→AB ⇒ AB ; A→CF ⇒ CFB ; C→a ⇒ aFB ; F→AD ⇒ aADB ; A→CD ⇒ aCDDB ; C→a ⇒ aaDDB ; D→b ⇒ aabDB ; D→b ⇒ aabbB ; B→BE ⇒ aabbBE ; B→BE ⇒ aabbBEE ; B→d ⇒ aabbdEE ; E→c ⇒ aabbdcE ; E→c ⇒ aabbdcc

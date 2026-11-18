@@ -1,4 +1,4 @@
-# Teoría de la Computación — Prácticas 2, 3 y 4: simulador de autómatas finitos y expresiones regulares con interfaz gráfica
+# Teoría de la Computación — Prácticas 2 a 5: simulador de autómatas finitos y expresiones regulares con interfaz gráfica
 
 **Nombre completo:** Ángel Saúl Hernández Aguilar  
 **Boleta:** 2025630123  
@@ -9,6 +9,59 @@
 **Fecha de entrega de la Práctica 2:** martes 6 de octubre de 2026, según el enunciado; la confirmación entregada quedó marcada con la etiqueta `practica2` (la última de `main` antes de la Práctica 3)
 
 **Repositorio:** https://github.com/angelsaulhernandezaguilar-source/practica2-tc
+
+## Práctica 5: formas normales con JFLAP y visualización de autómatas en el software
+
+**Fecha de entrega:** martes 17 de noviembre de 2026. La entrega es la confirmación que señala la etiqueta
+**`practica5`**; las Prácticas 2, 3 y 4 quedaron fijas en las etiquetas `practica2`, `practica3` y
+`practica4`. El software es el de las prácticas anteriores, ampliado en este mismo repositorio.
+
+### Índice de documentos
+
+| Documento | Contenido |
+|---|---|
+| [Ejercicio 1](docs/practica5/01-chomsky-jflap.md) | Forma Normal de Chomsky con JFLAP: tipo de la gramática, cada etapa de *Transform Grammar* (producciones λ, unitarias, símbolos inútiles y Chomsky) calculada a mano y con su captura, equivalencia con *Multiple Brute Force Parse*, árbol con *CYK Parse* y qué ocurre con λ |
+| [Ejercicio 2](docs/practica5/02-greibach-bnf.md) | Forma Normal de Greibach a mano (método y cada paso), comprobación en JFLAP, una gramática en Forma de Backus-Naur y la comparación de las tres formas |
+| [Ejercicio 3](docs/practica5/03-visualizacion.md) | Dibujo de autómatas sobre el lienzo de Flet: posición inicial de los estados, ciclos, transiciones en ambos sentidos, arrastre, el dibujo aplicado a las conversiones de las Prácticas 3 y 4, simulación gráfica y pruebas |
+| [Bibliografía](docs/bibliografia.md) | Referencias en formato APA 7 (ampliada) |
+
+| Carpeta | Contenido |
+|---|---|
+| `gramaticas/practica5/` | Las gramáticas en `.jff`: la original (`nombre.jff`), la que exporta JFLAP en Forma Normal de Chomsky (`nombre-FNC.jff`) y la Forma Normal de Greibach hecha a mano (`nombre-FNG.jff`) |
+| `src/visualizacion.py` | El cálculo del dibujo y de la simulación gráfica (sin Flet) |
+| `src/gramaticas.py` | Comprobación de las gramáticas sin JFLAP: forma normal y cadenas generadas hasta una longitud |
+| `tests/test_practica5.py`, `tests/test_practica5_gramaticas.py` | Las pruebas del apartado 3.3 y las de equivalencia de las gramáticas |
+| `evidencias/practica5/` | Capturas de JFLAP (`jflap/`, una carpeta por gramática con su `resultado.tsv`), del simulador (`app/`) y de la integración continua (`ci/`) |
+| `herramientas/` | `JflapGramatica.java` y `practica5_gramaticas.py` (Ejercicios 1 y 2 en JFLAP), `capturas_p5.py` (capturas del simulador) |
+
+### Uso de las funciones nuevas
+
+1. Cargue un autómata en la pestaña **1. Definir** (*Abrir .jff* o la lista *Autómatas del repositorio*), o
+   construya una expresión en la pestaña **6. ER → autómata**.
+2. Pestaña **9. Dibujo y simulación**. En *Autómata original* elija el autómata actual o el AFN-λ de la
+   expresión; en *Conversión que se dibuja al lado*, el resultado que quiere ver junto al original:
+   eliminación de λ, subconjuntos, minimización (Práctica 3) o autómata → ER → AFN-λ (Práctica 4).
+3. **Arrastre cualquier estado** con el ratón para reubicarlo: las flechas y las etiquetas lo siguen.
+   *Reacomodar estados* regresa a las posiciones calculadas. Los diagramas de las demás pestañas también se
+   pueden arrastrar.
+4. Escriba la cadena y use *Símbolo siguiente* y *Símbolo anterior* (o *Reiniciar* y *Hasta el final*). En
+   cada paso se resaltan en amarillo los estados activos y en naranja las transiciones usadas, en el
+   original y en el convertido; la cinta muestra la parte leída y, al terminar, aparece ACEPTADA o RECHAZADA.
+5. Desde Python, sin interfaz (con `PYTHONPATH=src`):
+
+   ```python
+   from formatos import cargar
+   from visualizacion import SimulacionGrafica, calcular_posiciones, construir_escena, convertir
+   m = cargar("automatas/practica3/casos-de-prueba/L3-199.jff")
+   print(calcular_posiciones(m))                      # {estado: (x, y)}
+   g = SimulacionGrafica(m, "1011")
+   print(g.estados_resaltados(), g.acepta)            # activos en cada paso y veredicto
+   afd, nota = convertir(m, "afd")                    # "sin-lambda", "afd", "minimo" o "er"
+   print(len(construir_escena(afd).arcos), nota)
+   ```
+
+Regenerar los Ejercicios 1 y 2 (requiere Java y JFLAP 7.1): `set JFLAP_JAR=C:\ruta\JFLAP7.1.jar` y
+`python herramientas/practica5_gramaticas.py`. Las gramáticas se abren en JFLAP con *File > Open*.
 
 ## Práctica 4: expresiones regulares y las dos direcciones del teorema de Kleene
 
