@@ -8,7 +8,7 @@
 **Profesor:** M. en C. Gabriel Hurtado Avilés  
 **Fecha de entrega de la Práctica 2:** martes 6 de octubre de 2026, según el enunciado; la confirmación entregada quedó marcada con la etiqueta `practica2` (la última de `main` antes de la Práctica 3)
 
-**Repositorio:** https://github.com/angelsaulhernandezaguilar-source/practica2-tc
+**Repositorio:** https://github.com/angelsaulhernandezaguilar-source/practica4-tc
 
 ## Práctica 5: formas normales con JFLAP y visualización de autómatas en el software
 
