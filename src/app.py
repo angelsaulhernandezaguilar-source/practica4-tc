@@ -9,7 +9,9 @@ Este archivo solo conecta controles con el núcleo:
 * algoritmos.py — los algoritmos de la Práctica 3 con su registro paso a paso;
 * expresiones.py — el analizador de expresiones regulares y las dos direcciones
   del teorema de Kleene (Práctica 4);
-* validadores.py — los validadores de formatos reales (Práctica 4).
+* validadores.py — los validadores de formatos reales (Práctica 4);
+* visualizacion.py — las posiciones, la geometría de las flechas y los cuadros de
+  la simulación gráfica (Práctica 5). Aquí solo se pinta lo que ese módulo calcula.
 
 Ninguna regla del autómata vive aquí; por eso el núcleo se prueba con pytest
 sin abrir la interfaz.
@@ -56,6 +58,17 @@ from expresiones import (
 )
 from formatos import FormatoInvalido, a_texto, desde_texto, posiciones, resumen_quintupla
 from validadores import VALIDADORES
+from visualizacion import (
+    CONVERSIONES,
+    RADIO,
+    RADIO_LAZO,
+    SimulacionGrafica,
+    calcular_posiciones,
+    construir_escena,
+    convertir as convertir_para_dibujo,
+    estado_en,
+    mover_estado,
+)
 from lenguajes import (
     cerradura_kleene,
     cerradura_positiva,
@@ -67,7 +80,6 @@ from lenguajes import (
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 CARPETA_EJEMPLOS = RAIZ / "automatas"
-RADIO = 22
 
 # Modos de simulación de un autómata no determinista (ver docs/03-simulador.md).
 TODOS_LOS_CAMINOS = "caminos"
@@ -89,73 +101,116 @@ def ejemplos_disponibles() -> list[str]:
 # Dibujo del diagrama de transiciones
 # ----------------------------------------------------------------------
 
-def diagrama(aut: Automata, activos=frozenset(), recientes=()) -> ft.Control:
-    """Diagrama con Canvas: círculos, flechas con etiqueta, inicial con flecha de entrada y
-    aceptación con doble círculo. ``activos`` se colorean; ``recientes`` son las transiciones
-    (origen, símbolo, destino) que se acaban de tomar."""
-    pos = posiciones(aut)
-    xs = [x for x, _ in pos.values()] or [0]
-    ys = [y for _, y in pos.values()] or [0]
-    ancho, alto = max(xs) + 90, max(ys) + 90
+def figuras(escena) -> list:
+    """Convierte una Escena (visualizacion.py) en figuras del lienzo. No decide nada: solo pinta."""
     lapiz = ft.Paint(color=ft.Colors.BLUE_GREY_700, stroke_width=1.6, style=ft.PaintingStyle.STROKE)
-    resaltado = ft.Paint(color=ft.Colors.ORANGE_800, stroke_width=3, style=ft.PaintingStyle.STROKE)
-    figuras = []
-
-    etiquetas: dict[tuple[str, str], list[str]] = {}
-    for (q, a), destinos in aut.transiciones.items():
-        for p in destinos:
-            etiquetas.setdefault((q, p), []).append(a or "λ")
-    usados = {(q, p) for q, _, p in recientes}
+    resaltado = ft.Paint(color=ft.Colors.DEEP_ORANGE_700, stroke_width=3.2, style=ft.PaintingStyle.STROKE)
+    borde_activo = ft.Paint(color=ft.Colors.DEEP_ORANGE_700, stroke_width=3, style=ft.PaintingStyle.STROKE)
+    lista = []
 
     def texto(x, y, valor, color=ft.Colors.BLACK, tam=12, negrita=False):
         return cv.Text(x, y, valor, style=ft.TextStyle(size=tam, color=color,
                                                         weight=ft.FontWeight.BOLD if negrita else None),
                        alignment=ft.Alignment.CENTER)
 
-    def punta(x1, y1, x2, y2, pintura):
-        ang = math.atan2(y2 - y1, x2 - x1)
-        return [cv.Line(x2, y2, x2 - 10 * math.cos(ang - 0.4), y2 - 10 * math.sin(ang - 0.4), pintura),
-                cv.Line(x2, y2, x2 - 10 * math.cos(ang + 0.4), y2 - 10 * math.sin(ang + 0.4), pintura)]
+    def punta(x, y, ang, color):
+        """Triángulo relleno con el vértice en (x, y) y apuntando en la dirección ``ang``."""
+        relleno = ft.Paint(color=color, style=ft.PaintingStyle.FILL)
+        return cv.Path([cv.Path.MoveTo(x, y),
+                        cv.Path.LineTo(x - 11 * math.cos(ang - 0.38), y - 11 * math.sin(ang - 0.38)),
+                        cv.Path.LineTo(x - 11 * math.cos(ang + 0.38), y - 11 * math.sin(ang + 0.38)),
+                        cv.Path.Close()], paint=relleno)
 
-    for (q, p), simbolos in etiquetas.items():
-        pintura = resaltado if (q, p) in usados else lapiz
-        ordenados = sorted(simbolos, key=lambda s: (s == "λ", s))
-        # Con alfabetos grandes (validadores) se abrevia la etiqueta: los primeros símbolos y cuántos son.
-        rotulo = ",".join(ordenados) if len(ordenados) <= 6 else ",".join(ordenados[:4]) + f",…({len(ordenados)})"
-        x1, y1 = pos[q]
-        if q == p:
-            figuras.append(cv.Circle(x1, y1 - RADIO - 10, 13, pintura))
-            figuras += punta(x1 + 14, y1 - RADIO - 14, x1 + 9, y1 - RADIO + 2, pintura)
-            figuras.append(texto(x1, y1 - RADIO - 34, rotulo))
-            continue
-        x2, y2 = pos[p]
-        ang = math.atan2(y2 - y1, x2 - x1)
-        # Si también existe la flecha de regreso, ambas se curvan hacia lados opuestos.
-        curva = 28 if (p, q) in etiquetas else 0
-        mx, my = (x1 + x2) / 2 - curva * math.sin(ang), (y1 + y2) / 2 + curva * math.cos(ang)
-        sx, sy = x1 + RADIO * math.cos(ang), y1 + RADIO * math.sin(ang)
-        ex, ey = x2 - RADIO * math.cos(ang), y2 - RADIO * math.sin(ang)
-        if curva:
-            figuras.append(cv.Path([cv.Path.MoveTo(sx, sy), cv.Path.QuadraticTo(mx, my, ex, ey)], paint=pintura))
-            figuras += punta(mx, my, ex, ey, pintura)
+    # Primero las flechas sin resaltar y después las resaltadas, para que estas queden encima.
+    for arco in sorted(escena.arcos, key=lambda a: a.resaltado):
+        pintura = resaltado if arco.resaltado else lapiz
+        color = ft.Colors.DEEP_ORANGE_700 if arco.resaltado else ft.Colors.BLUE_GREY_700
+        if arco.tipo == "lazo":
+            lista.append(cv.Circle(arco.control[0], arco.control[1], RADIO_LAZO, pintura))
+        elif arco.tipo == "curva":
+            lista.append(cv.Path([cv.Path.MoveTo(*arco.inicio),
+                                  cv.Path.QuadraticTo(arco.control[0], arco.control[1], *arco.fin)], paint=pintura))
         else:
-            figuras.append(cv.Line(sx, sy, ex, ey, pintura))
-            figuras += punta(sx, sy, ex, ey, pintura)
-        figuras.append(texto(mx - 8 * math.sin(ang), my + 8 * math.cos(ang) - 6, rotulo))
+            lista.append(cv.Line(arco.inicio[0], arco.inicio[1], arco.fin[0], arco.fin[1], pintura))
+        lista.append(punta(arco.punta[0], arco.punta[1], arco.angulo, color))
+        lista.append(texto(arco.etiqueta_en[0], arco.etiqueta_en[1] - 2, arco.etiqueta,
+                           color=ft.Colors.DEEP_ORANGE_900 if arco.resaltado else ft.Colors.BLACK,
+                           negrita=arco.resaltado))
 
-    for q, (x, y) in pos.items():
-        relleno = ft.Colors.AMBER_200 if q in activos else ft.Colors.WHITE
-        figuras.append(cv.Circle(x, y, RADIO, ft.Paint(color=relleno, style=ft.PaintingStyle.FILL)))
-        figuras.append(cv.Circle(x, y, RADIO, lapiz))
-        if q in aut.aceptacion:
-            figuras.append(cv.Circle(x, y, RADIO - 4, lapiz))
-        if q == aut.inicial:
-            figuras.append(cv.Line(x - RADIO - 28, y, x - RADIO, y, lapiz))
-            figuras += punta(x - RADIO - 28, y, x - RADIO, y, lapiz)
-        figuras.append(texto(x, y - 6, q if len(q) <= 6 else q[:5] + "…", tam=11, negrita=True))
+    for n in escena.nodos:
+        relleno = ft.Colors.AMBER_300 if n.activo else ft.Colors.WHITE
+        lista.append(cv.Circle(n.x, n.y, RADIO, ft.Paint(color=relleno, style=ft.PaintingStyle.FILL)))
+        lista.append(cv.Circle(n.x, n.y, RADIO, borde_activo if n.activo else lapiz))
+        if n.aceptacion:
+            lista.append(cv.Circle(n.x, n.y, RADIO - 4.5, lapiz))
+        if n.inicial:
+            lista.append(cv.Line(n.x - RADIO - 30, n.y, n.x - RADIO, n.y, lapiz))
+            lista.append(punta(n.x - RADIO, n.y, 0.0, ft.Colors.BLUE_GREY_700))
+        lista.append(texto(n.x, n.y - 2, n.rotulo, tam=11 if len(n.rotulo) <= 5 else 9, negrita=True))
+    return lista
 
-    return ft.Container(cv.Canvas(figuras, width=ancho, height=alto), width=ancho, height=alto,
-                        bgcolor=ft.Colors.GREY_50)
+
+# Posiciones que el usuario dejó al arrastrar, por autómata: así no se pierden al cambiar de paso o de pestaña.
+_posiciones_guardadas: dict = {}
+
+
+class Lienzo:
+    """Un autómata dibujado en un Canvas, con estados que se reubican arrastrándolos."""
+
+    def __init__(self, aut: Automata, activos=frozenset(), usadas=(), ancho_minimo=0, alto_minimo=0):
+        self.aut = aut
+        self.activos, self.usadas = frozenset(activos), list(usadas)
+        self.clave = (aut.nombre, tuple(aut.estados), aut.inicial, aut.num_transiciones())
+        self.pos = dict(_posiciones_guardadas.get(self.clave) or calcular_posiciones(aut))
+        self.arrastrado = None
+        self.ancho, self.alto = ancho_minimo, alto_minimo
+        self.canvas = cv.Canvas([])
+        self.caja = ft.Container(self.canvas, bgcolor=ft.Colors.GREY_50,
+                                 border=ft.Border.all(1, ft.Colors.GREY_300))
+        self.control = ft.GestureDetector(content=self.caja, drag_interval=25, mouse_cursor=ft.MouseCursor.MOVE,
+                                          on_pan_start=self._tomar, on_pan_update=self._arrastrar,
+                                          on_pan_end=self._soltar)
+        self.pintar()
+
+    def pintar(self, actualizar=False):
+        escena = construir_escena(self.aut, self.pos, self.activos, self.usadas)
+        self.pos = dict(escena.posiciones)
+        _posiciones_guardadas[self.clave] = dict(self.pos)
+        # Mientras se arrastra el lienzo no se encoge, para que el dibujo no salte.
+        self.ancho, self.alto = max(self.ancho, escena.ancho), max(self.alto, escena.alto)
+        self.canvas.shapes = figuras(escena)
+        self.canvas.width = self.caja.width = self.ancho
+        self.canvas.height = self.caja.height = self.alto
+        if actualizar:
+            self.control.update()
+
+    def resaltar(self, activos=frozenset(), usadas=(), actualizar=False):
+        self.activos, self.usadas = frozenset(activos), list(usadas)
+        self.pintar(actualizar)
+
+    def reacomodar(self):
+        """Vuelve a las posiciones calculadas."""
+        self.pos = calcular_posiciones(self.aut)
+        self.ancho = self.alto = 0
+        self.pintar(True)
+
+    def _tomar(self, e):
+        self.arrastrado = estado_en(self.pos, e.local_position.x, e.local_position.y, RADIO + 4)
+
+    def _arrastrar(self, e):
+        if self.arrastrado is None:
+            return
+        self.pos = mover_estado(self.pos, self.arrastrado, e.local_position.x, e.local_position.y)
+        self.pintar(True)
+
+    def _soltar(self, e):
+        self.arrastrado = None
+
+
+def diagrama(aut: Automata, activos=frozenset(), recientes=()) -> ft.Control:
+    """Diagrama de transiciones arrastrable: ``activos`` se colorean y ``recientes`` son las
+    transiciones (origen, símbolo, destino) que se acaban de tomar."""
+    return Lienzo(aut, activos, recientes).control
 
 
 def tabla_control(aut: Automata) -> ft.DataTable:
@@ -178,7 +233,7 @@ def tabla_de_filas(filas, resaltar=None) -> ft.DataTable:
 # ----------------------------------------------------------------------
 
 def main(page: ft.Page):
-    page.title = "Prácticas 2, 3 y 4 — Simulador de autómatas finitos y expresiones regulares"
+    page.title = "Prácticas 2 a 5 — Simulador de autómatas finitos y expresiones regulares"
     page.padding = 16
     page.scroll = ft.ScrollMode.AUTO
 
@@ -699,6 +754,8 @@ def main(page: ft.Page):
         pap["pasos"], pap["resultado"] = [], None
         titulo_paso.value = ""
         texto_paso.controls, tabla_paso.controls, diagrama_paso.controls = [], [], []
+        if origen_g.value == "actual":
+            dibujar_g(actualizar=False)
 
     pestana_algoritmos = ft.Column([
         ft.Text("Algoritmos de la Práctica 3, paso a paso", size=20, weight=ft.FontWeight.BOLD),
@@ -1141,14 +1198,157 @@ def main(page: ft.Page):
     ], spacing=10)
     mostrar_validador(actualizar=False)
 
+    # ------------------------------------------------------------------
+    # Pestaña 9: dibujo y simulación gráfica (Práctica 5, Ejercicio 3)
+    # ------------------------------------------------------------------
+    origen_g = ft.Dropdown(label="Autómata original", width=360, value="actual", options=[
+        ft.DropdownOption(key="actual", text="Autómata actual (pestaña 1)"),
+        ft.DropdownOption(key="er", text="AFN-λ de la expresión (pestaña 6)"),
+    ])
+    conversion_g = ft.Dropdown(label="Conversión que se dibuja al lado", width=440, value="afd", options=[
+        ft.DropdownOption(key="ninguna", text="Ninguna: solo el original")] + [
+        ft.DropdownOption(key=k, text=t) for k, t in CONVERSIONES.items()])
+    campo_cadena_g = ft.TextField(label="Cadena w (vacía = λ)", width=320)
+    cinta_g = ft.Row(spacing=3, wrap=True)
+    lectura_g = ft.Text(selectable=True, size=14)
+    veredicto_g = ft.Text(size=18, weight=ft.FontWeight.BOLD)
+    panel_original = ft.Column(spacing=6)
+    panel_convertido = ft.Column(spacing=6)
+    graf = {"lienzos": [], "sims": [], "textos": [], "cadena": None, "i": 0}
+
+    def original_para_dibujar():
+        if origen_g.value == "er":
+            if er["cadena"] is None:
+                raise AutomataInvalido("Primero construya una expresión en la pestaña 6.")
+            return er["cadena"].afn_lambda
+        if estado["aut"] is None:
+            raise AutomataInvalido("Primero defina o cargue un autómata en la pestaña 1.")
+        return estado["aut"]
+
+    def dibujar_g(e=None, actualizar=True):
+        """Dibuja el original y, al lado, el autómata obtenido por la conversión elegida."""
+        try:
+            original = original_para_dibujar()
+            pares = [("Original", original, "")]
+            if conversion_g.value != "ninguna":
+                convertido, nota = convertir_para_dibujo(original, conversion_g.value)
+                pares.append((CONVERSIONES[conversion_g.value], convertido, nota))
+        except AutomataInvalido as err:
+            if actualizar:
+                avisar(str(err), error=True)
+            return
+        graf.update(lienzos=[], sims=[], textos=[], cadena=None, i=0)
+        for panel, (titulo, aut, nota) in zip((panel_original, panel_convertido), pares):
+            lienzo = Lienzo(aut, ancho_minimo=420, alto_minimo=260)
+            ancho_texto = max(lienzo.ancho, 420)
+            explicacion = ft.Text(selectable=True, width=ancho_texto)
+            graf["lienzos"].append(lienzo)
+            graf["textos"].append(explicacion)
+            panel.controls = [
+                ft.Text(f"{titulo}: {aut.nombre or 'autómata'} — {aut.tipo}, {len(aut.estados)} estados y "
+                        f"{aut.num_transiciones()} transiciones", weight=ft.FontWeight.BOLD, width=ancho_texto),
+                *([ft.Text(nota, italic=True, selectable=True, width=ancho_texto)] if nota else []),
+                ft.Row([lienzo.control], scroll=ft.ScrollMode.AUTO),
+                explicacion,
+            ]
+        if len(pares) == 1:
+            panel_convertido.controls = []
+        cinta_g.controls, lectura_g.value, veredicto_g.value = [], "", ""
+        if actualizar:
+            page.update()
+
+    def reacomodar_g(e):
+        for lienzo in graf["lienzos"]:
+            lienzo.reacomodar()
+
+    def preparar_simulacion_g():
+        """Crea las simulaciones si la cadena cambió. Devuelve False si no hay nada dibujado."""
+        if not graf["lienzos"]:
+            dibujar_g()
+            if not graf["lienzos"]:
+                return False
+        w = campo_cadena_g.value or ""
+        if graf["cadena"] != w or not graf["sims"]:
+            graf["sims"] = [SimulacionGrafica(l.aut, w) for l in graf["lienzos"]]
+            graf["cadena"], graf["i"] = w, 0
+            fuera = graf["sims"][0].fuera
+            if fuera:
+                avisar(f"Símbolos fuera de Σ: {', '.join(fuera)}. La cadena se rechazará.", error=True)
+        return True
+
+    def mover_g(delta):
+        def accion(e):
+            nueva = graf["cadena"] != (campo_cadena_g.value or "") or not graf["sims"]
+            if not preparar_simulacion_g():
+                return
+            if not nueva or delta > 1:
+                graf["i"] = max(0, min(graf["sims"][0].total, graf["i"] + delta))
+            mostrar_cuadro_g()
+        return accion
+
+    def mostrar_cuadro_g():
+        i = graf["i"]
+        for sim, lienzo, explicacion in zip(graf["sims"], graf["lienzos"], graf["textos"]):
+            sim.i = i
+            c = sim.actual
+            lienzo.resaltar(c.activos, c.resaltadas)
+            explicacion.value = (f"Estado(s) actual(es): {mostrar_conjunto(c.activos)}\n" + sim.explicar()
+                                 + (f"\nResultado en este autómata: {sim.veredicto()}." if sim.terminada else ""))
+        sim = graf["sims"][0]
+        c = sim.actual
+
+        def casilla(simbolo, k):
+            leida, recien = k < i, k == i - 1
+            return ft.Container(
+                ft.Text(simbolo, size=16, weight=ft.FontWeight.BOLD if leida else None,
+                        color=ft.Colors.BLACK if leida else ft.Colors.GREY_600),
+                width=34, height=34, alignment=ft.Alignment.CENTER,
+                bgcolor=ft.Colors.AMBER_300 if recien else (ft.Colors.GREEN_100 if leida else ft.Colors.WHITE),
+                border=ft.Border.all(2 if recien else 1,
+                                     ft.Colors.DEEP_ORANGE_700 if recien else ft.Colors.GREY_400))
+
+        cinta_g.controls = ([casilla(a, k) for k, a in enumerate(sim.simbolos)]
+                            or [ft.Text("λ (cadena vacía)", size=16, italic=True)])
+        lectura_g.value = (f"Paso {i} de {sim.total}.  Leído: {mostrar_cadena(c.leido)}   ·   "
+                           f"Por leer: {mostrar_cadena(c.por_leer)}")
+        if sim.terminada:
+            veredicto_g.value = f"«{mostrar_cadena(sim.cadena)}» {sim.veredicto()}"
+            veredicto_g.color = ft.Colors.GREEN_800 if sim.acepta else ft.Colors.RED_800
+            if len({s.acepta for s in graf["sims"]}) > 1:
+                veredicto_g.value += " (¡los dos autómatas no coinciden!)"
+        else:
+            veredicto_g.value, veredicto_g.color = "Simulación en curso…", ft.Colors.BLUE_GREY_700
+        page.update()
+
+    origen_g.on_select = dibujar_g
+    conversion_g.on_select = dibujar_g
+
+    pestana_grafica = ft.Column([
+        ft.Text("Dibujo del autómata y simulación gráfica (Práctica 5)", size=20, weight=ft.FontWeight.BOLD),
+        ft.Text("Arrastre un estado para reubicarlo; las flechas y las etiquetas lo siguen. El amarillo marca los "
+                "estados activos y el naranja las transiciones que se acaban de usar.", italic=True),
+        ft.Row([origen_g, conversion_g,
+                ft.FilledButton("Dibujar", icon=ft.Icons.ACCOUNT_TREE, on_click=dibujar_g),
+                ft.Button("Reacomodar estados", icon=ft.Icons.AUTO_FIX_HIGH, on_click=reacomodar_g)], wrap=True),
+        ft.Row([campo_cadena_g,
+                ft.Button("Reiniciar", icon=ft.Icons.RESTART_ALT, on_click=mover_g(-10 ** 6)),
+                ft.Button("Símbolo anterior", icon=ft.Icons.NAVIGATE_BEFORE, on_click=mover_g(-1)),
+                ft.FilledButton("Símbolo siguiente", icon=ft.Icons.NAVIGATE_NEXT, on_click=mover_g(1)),
+                ft.Button("Hasta el final", icon=ft.Icons.SKIP_NEXT, on_click=mover_g(10 ** 6))], wrap=True),
+        cinta_g, lectura_g, veredicto_g,
+        ft.Row([panel_original, panel_convertido], wrap=True, spacing=24,
+               vertical_alignment=ft.CrossAxisAlignment.START),
+    ], spacing=10)
+
     pestanas = ft.Tabs(
-        length=8,
+        length=9,
         selected_index=0,
         content=ft.Column([
             ft.TabBar(tabs=[ft.Tab(label="1. Definir"), ft.Tab(label="2. Autómata"),
                             ft.Tab(label="3. Simular"), ft.Tab(label="4. Lenguajes"),
                             ft.Tab(label="5. Paso a paso"), ft.Tab(label="6. ER → autómata"),
-                            ft.Tab(label="7. Autómata → ER"), ft.Tab(label="8. Validadores")]),
+                            ft.Tab(label="7. Autómata → ER"), ft.Tab(label="8. Validadores"),
+                            ft.Tab(label="9. Dibujo y simulación")]),
             ft.TabBarView(controls=[
                 ft.Container(ft.Column([pestana_definir], scroll=ft.ScrollMode.AUTO), padding=10),
                 ft.Container(ft.Column([vista], scroll=ft.ScrollMode.AUTO), padding=10),
@@ -1158,6 +1358,7 @@ def main(page: ft.Page):
                 ft.Container(ft.Column([pestana_er], scroll=ft.ScrollMode.AUTO), padding=10),
                 ft.Container(ft.Column([pestana_afd_er], scroll=ft.ScrollMode.AUTO), padding=10),
                 ft.Container(ft.Column([pestana_validadores], scroll=ft.ScrollMode.AUTO), padding=10),
+                ft.Container(ft.Column([pestana_grafica], scroll=ft.ScrollMode.AUTO), padding=10),
             ], expand=True),
         ], expand=True),
         expand=True,
